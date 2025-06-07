@@ -44,7 +44,7 @@ const studentReport = (data) => {
   const report = [];
   report.push(data.name);
   report.push(data.rollNo);
-  const average = calcAverage(data.marks);
+  const average = Number(calcAverage(data.marks).toFixed(2));
   report.push(average);
   report.push(calcGrade(average));
 
@@ -58,19 +58,35 @@ const nameWithAvg = (topperReport) => {
   };
 };
 
-const subjectToppers = ({ topStudent, subject }, init) => {
-  if (topStudent.marks[subject] < init.marks[subject]) {
-    return { topStudent: init, subject };
+const subjectToppers = ([topPerson, subject], student) => {
+  const topMarks = topPerson[0].marks[subject];
+  if (
+    topMarks === student.marks[subject] &&
+    topPerson[0].rollNo !== student.rollNo
+  ) {
+    topPerson.push(student);
+
+    return [topPerson, subject];
   }
 
-  return { topStudent, subject };
+  return [topPerson, subject];
+};
+
+const topStudent = ({ topPerson, subject }, student) => {
+  if (topPerson.marks[subject] < student.marks[subject]) {
+    return { topPerson: student, subject };
+  }
+
+  return { topPerson, subject };
 };
 
 const extractSubjectToppers = (entries, subject) => {
-  return entries.reduce(subjectToppers, {
-    topStudent: entries[0],
+  const { topPerson } = entries.reduce(topStudent, {
+    topPerson: entries[0],
     subject,
   });
+
+  return entries.reduce(subjectToppers, [[topPerson], subject]);
 };
 
 const finalStudentReport = (report) => {
@@ -90,10 +106,12 @@ const studentAndAvg = (student) => {
   return student.name + " (Avg: " + student.avg + ")";
 };
 
-const eachSubToppers = ({ topStudent, subject }) => {
-  return (
-    subject + ": " + topStudent.name + "(" + topStudent.marks[subject] + ")"
+const eachSubToppers = ([students, subject]) => {
+  const topStudents = students.map(
+    (student) => student.name + " (" + student.marks[subject] + ")"
   );
+
+  return subject + ": " + topStudents;
 };
 
 const finalTemplate = (
@@ -104,15 +122,14 @@ const finalTemplate = (
 ) => {
   console.log("----- Student Performance Report -----");
   console.log(report.map(finalStudentReport).join("\n"));
-
   console.log("\n----- Top Performer(s) -----");
   console.log(topStudentsWithAvg.map(studentAndAvg).join("\n"));
-
   console.log("\n----- Failed Student(s) -----");
   console.log(failedStudentsWithAvg.map(studentAndAvg).join("\n"));
-
   console.log("\n----- Subject-wise Toppers -----");
-  console.log(subjectWiseToppers.map(eachSubToppers).join("\n"));
+  console.log(
+    subjectWiseToppers.map((students) => eachSubToppers(students)).join("\n")
+  );
 };
 
 const result = (data) => {
@@ -127,6 +144,7 @@ const result = (data) => {
   const subjectWiseToppers = subjects.map((subject) =>
     extractSubjectToppers(entries, subject)
   );
+
   finalTemplate(
     report,
     topStudentsWithAvg,
@@ -135,35 +153,6 @@ const result = (data) => {
   );
 };
 
-// const data = [
-//   {
-//     name: "Alice",
-//     rollNo: 101,
-//     marks: {
-//       Math: 95,
-//       Science: 88,
-//       English: 91,
-//     },
-//   },
-//   {
-//     name: "Bob",
-//     rollNo: 102,
-//     marks: {
-//       Math: 40,
-//       Science: 35,
-//       English: 42,
-//     },
-//   },
-//   {
-//     name: "Charlie",
-//     rollNo: 103,
-//     marks: {
-//       Math: 78,
-//       Science: 85,
-//       English: 80,
-//     },
-//   },
-// ];
 const data = [
   {
     name: "Alice",
@@ -190,24 +179,6 @@ const data = [
       Math: 78,
       Science: 85,
       English: 80,
-    },
-  },
-  {
-    name: "Daisy",
-    rollNo: 104,
-    marks: {
-      Math: 95,
-      Science: 88,
-      English: 91,
-    },
-  },
-  {
-    name: "Evan",
-    rollNo: 105,
-    marks: {
-      Math: 30,
-      Science: 20,
-      English: 25,
     },
   },
 ];
